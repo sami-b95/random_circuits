@@ -4,7 +4,7 @@
         "design": "1d_parallel",
         "n_qubits": 5,
         "length": 2,
-        "n_samples": 100,
+        "n_samples": 10000,
         "n_tensor_factors": 2
     }
 ]

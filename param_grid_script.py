@@ -1,11 +1,15 @@
+#!/lustre/home/ucapsjg/.conda/envs/quantum/bin/python3.8
+
 from argparse import ArgumentParser
 from functools import partial
 from importlib import reload
 import json
 import os
 import pickle
+import sys
 import time
 
+sys.path.append("/home/ucapsjg/random_circuits")
 import benchmarks
 import unitary_designs
 
@@ -26,12 +30,31 @@ param_set = param_grid[args.param_set_id]
 
 if param_set["design"] == "1d_parallel":
     circuit_sampler = partial(unitary_designs.pseudorandom_1d_parallel_circuit, n_qubits=param_set["n_qubits"], length=param_set["length"])
+elif param_set["design"] == "2d_parallel":
+    circuit_sampler = partial(unitary_designs.pseudorandom_parallel_circuit, D=2, n_qubits_per_dimension=param_set["n_qubits_per_dimension"], s=param_set["s"], c=param_set["c"])
 else:
     raise ValueError(f"Unrecognized design type {param_set['design']}")
 
 # Run sampling experiment
 
 output_prefix = f"{int(time.time() * 1000000)}_{os.getpid()}"
+
+result = {
+    "design": param_set["design"],
+    "n_samples": param_set["n_samples"],
+    "benchmark": param_set["benchmark"]
+}
+if param_set["design"] == "1d_parallel":
+    result.update({
+        "n_qubits": param_set["n_qubits"],
+        "length": param_set["length"]
+    })
+elif param_set["design"] == "2d_parallel":
+    result.update({
+        "n_qubits_per_dimension": param_set["n_qubits_per_dimension"],
+        "s": param_set["s"],
+        "c": param_set["c"]
+    })
 
 if param_set["benchmark"] == "random_coefficient_benchmark":
     deviation, \
@@ -45,22 +68,24 @@ if param_set["benchmark"] == "random_coefficient_benchmark":
         n_tensor_factors=param_set["n_tensor_factors"],
         n_circuits=param_set["n_samples"]
     )
-    with open(os.path.join(args.datadir, f"{output_prefix}_info.pickle"), "wb") as f:
-        pickle.dump({
-            "deviation": deviation,
-            "error": error,
-            "basis_labels_left": basis_labels_left,
-            "basis_labels_mid_left": basis_labels_mid_left,
-            "basis_labels_mid_right": basis_labels_mid_right,
-            "basis_labels_right": basis_labels_right
-        }, f)
-    with open(os.path.join(args.datadir, f"{output_prefix}_data.pickle"), "wb") as f:
-        pickle.dump({
-            "deviation": deviation,
-            "error": error,
-            "basis_labels_left": basis_labels_left,
-            "basis_labels_mid_left": basis_labels_mid_left,
-            "basis_labels_mid_right": basis_labels_mid_right,
-            "basis_labels_right": basis_labels_right,
-            "samples": samples
-        }, f)
+    result.update({
+        "n_tensor_factors": param_set["n_tensor_factors"],
+        "deviation": deviation,
+        "error": error,
+        "basis_labels_left": basis_labels_left,
+        "basis_labels_mid_left": basis_labels_mid_left,
+        "basis_labels_mid_right": basis_labels_mid_right,
+        "basis_labels_right": basis_labels_right
+    })
+    full_result = dict(result)
+    full_result["samples"] = samples
+elif param_set["benchmark"] == "xeb_benchmark":
+    xeb_benchmark = benchmarks.xeb_benchmark(circuit_sampler, param_set["n_samples"])
+    result["xeb_benchmark"] = xeb_benchmark
+    full_result = dict(result)
+
+with open(os.path.join(args.datadir, f"{output_prefix}_info.pickle"), "wb") as f:
+    pickle.dump(result, f)
+with open(os.path.join(args.datadir, f"{output_prefix}_data.pickle"), "wb") as f:
+    pickle.dump(full_result, f)
+ 
