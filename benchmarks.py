@@ -5,7 +5,7 @@ import twirl
 import twirl_optimized
 
 
-def xeb_circuit_benchmark(qc, n_samples=8192):
+def xeb_circuit_benchmark(qc, n_samples=8192, moment=1):
     # Extract circuit unitary
     statevector = execute(qc, backend=Aer.get_backend("statevector_simulator")).result().get_statevector()
     # Sample strings from circuit
@@ -18,14 +18,14 @@ def xeb_circuit_benchmark(qc, n_samples=8192):
     probabilities = []
     for bits_string, count in counts.items():
         probabilities += [np.abs(statevector[int(bits_string, 2)]) ** 2] * count
-    return 2 ** qc.n_qubits * np.mean(probabilities) - 1
+    return 2 ** (qc.n_qubits * moment) * np.mean(np.array(probabilities) ** moment) - 1
 
-def xeb_benchmark(circuit_sampler, n_circuits):
+def xeb_benchmark(circuit_sampler, n_circuits, moment=1):
     benchmarks = []
     for trial in range(n_circuits):
         qc = circuit_sampler()
-        benchmarks.append(xeb_circuit_benchmark(qc, n_samples=n_circuits))
-    return np.mean(benchmarks)
+        benchmarks.append(xeb_circuit_benchmark(qc, n_samples=n_circuits, moment=moment))
+    return np.mean(benchmarks), np.std(benchmarks) / np.sqrt(n_circuits)
 
 def twirl_matrix_coefficient_benchmark(circuit_sampler, n_tensor_factors, n_circuits, avoid_sign_problem=True):
     """ Choose indices i_1, ..., i_t, i_1', ..., i_t', j_1, ..., j_t, j_1', ..., j_t' and random and
