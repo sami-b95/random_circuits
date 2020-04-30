@@ -18,7 +18,7 @@ def xeb_circuit_benchmark(qc, n_samples=8192, moment=1):
     probabilities = []
     for bits_string, count in counts.items():
         probabilities += [np.abs(statevector[int(bits_string, 2)]) ** 2] * count
-    return 2 ** (qc.n_qubits * moment) * np.mean(np.array(probabilities) ** moment) - 1
+    return 2 ** (qc.n_qubits * moment) * np.mean(np.array(probabilities) ** moment) - 1, probabilities
 
 def xeb_benchmark(circuit_sampler, n_circuits, moment=1):
     benchmarks = []
@@ -92,4 +92,18 @@ def twirl_matrix_coefficient_benchmark(circuit_sampler, n_tensor_factors, n_circ
         basis_labels_mid_right, \
         basis_labels_right, \
         samples
-    
+
+def anticoncentration_benchmark(circuit_sampler, n_circuits):
+    n_qubits = circuit_sampler().n_qubits
+    d_value = 2 ** n_qubits
+    samples = twirl.circuit_statistical_sample_computational_basis(
+        [0, 0],
+        [0, 0],
+        [0, 0],
+        [0, 0],
+        d_value,
+        n_circuits,
+        circuit_sampler
+    )
+    return 2 ** n_qubits * (2 ** n_qubits + 1) * np.mean(samples).real - 1, \
+        2 ** n_qubits * (2 ** n_qubits + 1) * np.std(samples) / np.sqrt(n_circuits)

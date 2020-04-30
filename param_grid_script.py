@@ -80,13 +80,14 @@ if param_set["benchmark"] == "random_coefficient_benchmark":
     full_result = dict(result)
     full_result["samples"] = samples
 elif param_set["benchmark"] == "xeb_benchmark":
-    xeb_mean, xeb_std = benchmarks.xeb_benchmark(circuit_sampler, param_set["n_samples"], moment=param_set.get("moment", 1))
+    xeb_mean, xeb_std, samples = benchmarks.xeb_benchmark(circuit_sampler, param_set["n_samples"], moment=param_set.get("moment", 1))
     result.update({
         "moment": param_set.get("moment", 1),
         "xeb_mean": xeb_mean,
         "xeb_std": xeb_std
     })
     full_result = dict(result)
+    full_result["samples"] = samples
 
 with open(os.path.join(args.datadir, f"{output_prefix}_info.pickle"), "wb") as f:
     pickle.dump(result, f)
