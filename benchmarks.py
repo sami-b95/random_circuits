@@ -25,7 +25,8 @@ def xeb_benchmark(circuit_sampler, n_circuits, moment=1):
     for trial in range(n_circuits):
         qc = circuit_sampler()
         benchmarks.append(xeb_circuit_benchmark(qc, n_samples=n_circuits, moment=moment))
-    return np.mean(benchmarks), np.std(benchmarks) / np.sqrt(n_circuits)
+    return 1 + (np.mean(benchmarks) - (np.math.factorial(moment + 1) - 1)) / (np.math.factorial(moment + 1) - 1), \
+        np.std(benchmarks) / (np.sqrt(n_circuits) * (np.math.factorial(moment + 1) - 1))
 
 def twirl_matrix_coefficient_benchmark(circuit_sampler, n_tensor_factors, n_circuits, avoid_sign_problem=True):
     """ Choose indices i_1, ..., i_t, i_1', ..., i_t', j_1, ..., j_t, j_1', ..., j_t' and random and
