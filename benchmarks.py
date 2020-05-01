@@ -14,7 +14,7 @@ def xeb_circuit_benchmark(qc, n_samples=8192, moment=1):
     measure_qc = QuantumCircuit(qr, cr)
     measure_qc.measure(qr, cr)
     full_qc = qc + measure_qc
-    counts = execute(full_qc, backend=Aer.get_backend("qasm_simulator"), shots=n_samples).result().get_counts(full_qc)
+    counts = execute(full_qc, backend=Aer.get_backend("qasm_simulator"), shots=n_samples, seed_simulator=np.random.randint(2 ** 32)).result().get_counts(full_qc)
     probabilities = []
     for bits_string, count in counts.items():
         probabilities += [np.abs(statevector[int(bits_string, 2)]) ** 2] * count
@@ -22,11 +22,15 @@ def xeb_circuit_benchmark(qc, n_samples=8192, moment=1):
 
 def xeb_benchmark(circuit_sampler, n_circuits, moment=1):
     benchmarks = []
+    all_probabilities = []
     for trial in range(n_circuits):
         qc = circuit_sampler()
-        benchmarks.append(xeb_circuit_benchmark(qc, n_samples=n_circuits, moment=moment))
+        benchmark, probabilities = xeb_circuit_benchmark(qc, n_samples=8192, moment=moment)
+        benchmarks.append(benchmark)
+        all_probabilities.extend(probabilities)
     return 1 + (np.mean(benchmarks) - (np.math.factorial(moment + 1) - 1)) / (np.math.factorial(moment + 1) - 1), \
-        np.std(benchmarks) / (np.sqrt(n_circuits) * (np.math.factorial(moment + 1) - 1))
+        np.std(benchmarks) / (np.sqrt(n_circuits) * (np.math.factorial(moment + 1) - 1)), \
+        all_probabilities
 
 def twirl_matrix_coefficient_benchmark(circuit_sampler, n_tensor_factors, n_circuits, avoid_sign_problem=True):
     """ Choose indices i_1, ..., i_t, i_1', ..., i_t', j_1, ..., j_t, j_1', ..., j_t' and random and
