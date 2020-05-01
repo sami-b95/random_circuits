@@ -29,9 +29,28 @@ param_set = param_grid[args.param_set_id]
 # Set circuit sampler
 
 if param_set["design"] == "1d_parallel":
-    circuit_sampler = partial(unitary_designs.pseudorandom_1d_parallel_circuit, n_qubits=param_set["n_qubits"], length=param_set["length"])
+    circuit_sampler = partial(
+        unitary_designs.pseudorandom_1d_parallel_circuit,
+        n_qubits=param_set["n_qubits"],
+        length=param_set["length"]
+    )
 elif param_set["design"] == "2d_parallel":
-    circuit_sampler = partial(unitary_designs.pseudorandom_parallel_circuit, D=2, n_qubits_per_dimension=param_set["n_qubits_per_dimension"], s=param_set["s"], c=param_set["c"])
+    circuit_sampler = partial(
+        unitary_designs.pseudorandom_parallel_circuit,
+        D=2,
+        n_qubits_per_dimension=param_set["n_qubits_per_dimension"],
+        s=param_set["s"],
+        c=param_set["c"]
+    )
+elif param_set["design"] == "2d_parallel_alternative":
+    circuit_sampler = partial(
+        unitary_designs.pseudorandom_2d_parallel_circuit,
+        n_qubits_rows=param_set["n_qubits_rows"],
+        n_qubits_cols=param_set["n_qubits_cols"],
+        s=param_set["s"],
+        c=param_set["c"],
+        two_qubit_gate_choice=param_set.get("two_qubit_gate_choice", "continuous")
+    )
 elif param_set["design"] == "sycamore_18":
     circuit_sampler = partial(unitary_designs.sycamore_18, n_cycles=param_set["n_cycles"])
 else:
@@ -56,6 +75,18 @@ elif param_set["design"] == "2d_parallel":
         "n_qubits_per_dimension": param_set["n_qubits_per_dimension"],
         "s": param_set["s"],
         "c": param_set["c"]
+    })
+elif param_set["design"] == "2d_parallel_alternative":
+    result.update({
+        "n_qubits_rows": param_set["n_qubits_rows"],
+        "n_qubits_cols": param_set["n_qubits_cols"],
+        "s": param_set["s"],
+        "c": param_set["c"],
+        "two_qubit_gate_choice": param_set.get("two_qubit_gate_choice", "continuous")
+    })
+elif param_set["design"] == "sycamore_18":
+    result.update({
+        "n_cycles": param_set["n_cycles"]
     })
 
 if param_set["benchmark"] == "random_coefficient_benchmark":

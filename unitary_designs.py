@@ -83,6 +83,54 @@ def pseudorandom_parallel_circuit(D, n_qubits_per_dimension, c, s):
     qubits = np.reshape(qr[:], (n_qubits_per_dimension,) * D)
     return pseudorandom_parallel_circuit_helper(qubits, c, s)
 
+def pseudorandom_2d_parallel_circuit(n_qubits_rows, n_qubits_cols, c, s, two_qubit_gate_choice="continuous"):
+    qr = QuantumRegister(n_qubits_rows * n_qubits_cols)
+    qubits = np.reshape(qr[:], (n_qubits_rows, n_qubits_cols))
+    qc = QuantumCircuit(qr)
+    
+    def parallel_1d_circuit(qubits, length, two_qubit_gate_choice="continuous"):
+        qc = QuantumCircuit(*set(qubit.register for qubit in qubits))
+        for step in range(length):
+            for qubit_index in range(step % 2, len(qubits) - 1, 2):
+                if two_qubit_gate_choice == "continuous":
+                    two_qubit_unitary = haar_unitary(4)
+                elif two_qubit_gate_choice == "fsim":
+                    two_qubit_unitary = np.array([
+                        [1, 0, 0, 0],
+                        [0, 0, -1j, 0],
+                        [0, -1j, 0, 0],
+                        [0, 0, 0, np.exp(-1j * np.pi / 6)]
+                    ])
+                else:
+                    raise ValueError("unrecognized gate choice {}".format(two_qubit_gate_choice))
+                qc.unitary(two_qubit_unitary, [qubits[qubit_index], qubits[qubit_index + 1]])
+        return qc
+    
+    previous_one_qubit_gates = [None] * len(qr)
+                        
+    for cycle in range(c):
+        if two_qubit_gate_choice != "continuous":
+            for qubit_index in range(len(qr)):
+                one_qubit_gate_choices = ["X", "Y", "W"]
+                if cycle > 0:
+                    one_qubit_gate_choices.remove(previous_one_qubit_gates[qubit_index])
+                previous_one_qubit_gates[qubit_index] = choice = np.random.choice(one_qubit_gate_choices)
+                if choice == "X":
+                    qc.unitary(1 / np.sqrt(2) * np.array([[1, -1j], [-1j, 1]]), [qr[qubit_index]])
+                elif choice == "Y":
+                    qc.unitary(1 / np.sqrt(2) * np.array([[1, -1], [1, 1]]), [qr[qubit_index]])
+                elif choice == "W":
+                    qc.unitary(1 / np.sqrt(2) * np.array([[1, -np.exp(1j * np.pi / 4)], [np.exp(-1j * np.pi / 4), 1]]), [qr[qubit_index]])
+                else:
+                    raise ValueError("unexpected 1-qubit gate choice {}".format(choice))
+        for i in range(n_qubits_rows):
+            qc += parallel_1d_circuit(qubits[i], s, two_qubit_gate_choice)
+        for j in range(n_qubits_cols):
+            qc += parallel_1d_circuit(qubits[:, j], s, two_qubit_gate_choice)
+    for i in range(n_qubits_rows):
+        qc += parallel_1d_circuit(qubits[i], s, two_qubit_gate_choice)
+    return qc
+
 def sycamore_18(n_cycles):
     edges = {
         "A": [(1, 4), (2, 5), (8, 11), (3, 6), (9, 12), (10, 13)],
